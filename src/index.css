@@ -1,77 +1,194 @@
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "VT323", monospace;
+  --font-sans: "Share Tech Mono", monospace;
+  --font-display: "VT323", monospace;
   --font-mono: "VT323", monospace;
 }
 
-body {
-  background-color: #000;
-  color: #0ff;
-  margin: 0;
-  overflow-x: hidden;
+:root {
+  --cyan: #0ff;
+  --magenta: #f0f;
+  --bg: #050505;
 }
 
+body {
+  background-color: var(--bg);
+  color: #fff;
+  margin: 0;
+  overflow-x: hidden;
+  font-family: "Share Tech Mono", monospace;
+}
+
+@media (min-width: 768px) {
+  body, a, button, input, [role="button"] {
+    cursor: none;
+  }
+}
+
+/* Static Noise Background */
+.static-noise {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Glitch Text Effect */
 .glitch-text {
   position: relative;
-  color: #0ff;
-  text-shadow: 2px 2px #f0f;
+  color: white;
+  text-shadow: 2px 0 var(--magenta), -2px 0 var(--cyan);
+  animation: glitch-anim 2s infinite linear alternate-reverse;
 }
-.glitch-text::before, .glitch-text::after {
+
+.glitch-text::before,
+.glitch-text::after {
   content: attr(data-text);
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: #000;
+  background: var(--bg);
 }
+
 .glitch-text::before {
   left: 2px;
-  text-shadow: -2px 0 #f0f;
-  clip: rect(24px, 550px, 90px, 0);
-  animation: glitch-anim-2 3s infinite linear alternate-reverse;
+  text-shadow: -2px 0 var(--cyan);
+  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+  animation: glitch-anim-1 2s infinite linear alternate-reverse;
 }
+
 .glitch-text::after {
   left: -2px;
-  text-shadow: -2px 0 #0ff;
-  clip: rect(85px, 550px, 140px, 0);
-  animation: glitch-anim 2.5s infinite linear alternate-reverse;
+  text-shadow: -2px 0 var(--magenta);
+  clip-path: polygon(0 66%, 100% 66%, 100% 100%, 0 100%);
+  animation: glitch-anim-2 3s infinite linear alternate-reverse;
 }
 
 @keyframes glitch-anim {
-  0% { clip: rect(11px, 9999px, 9px, 0); }
-  20% { clip: rect(85px, 9999px, 118px, 0); }
-  40% { clip: rect(14px, 9999px, 147px, 0); }
-  60% { clip: rect(129px, 9999px, 114px, 0); }
-  80% { clip: rect(29px, 9999px, 101px, 0); }
-  100% { clip: rect(65px, 9999px, 143px, 0); }
+  0% { transform: translate(0) }
+  20% { transform: translate(-2px, 1px) }
+  40% { transform: translate(-1px, -1px) }
+  60% { transform: translate(2px, 1px) }
+  80% { transform: translate(1px, -1px) }
+  100% { transform: translate(0) }
 }
+
+@keyframes glitch-anim-1 {
+  0% { clip-path: polygon(0 10%, 100% 10%, 100% 30%, 0 30%); transform: translate(-2px) }
+  50% { clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%); transform: translate(2px) }
+  100% { clip-path: polygon(0 80%, 100% 80%, 100% 100%, 0 100%); transform: translate(-2px) }
+}
+
 @keyframes glitch-anim-2 {
-  0% { clip: rect(65px, 9999px, 100px, 0); }
-  20% { clip: rect(10px, 9999px, 40px, 0); }
-  40% { clip: rect(120px, 9999px, 130px, 0); }
-  60% { clip: rect(40px, 9999px, 60px, 0); }
-  80% { clip: rect(80px, 9999px, 90px, 0); }
-  100% { clip: rect(20px, 9999px, 30px, 0); }
+  0% { clip-path: polygon(0 15%, 100% 15%, 100% 35%, 0 35%); transform: translate(2px) }
+  50% { clip-path: polygon(0 45%, 100% 45%, 100% 65%, 0 65%); transform: translate(-2px) }
+  100% { clip-path: polygon(0 85%, 100% 85%, 100% 100%, 0 100%); transform: translate(2px) }
 }
 
-.scanlines {
-  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.3));
-  background-size: 100% 4px;
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none;
-  z-index: 50;
-}
-
+/* Screen Tear */
 .screen-tear {
-  animation: tear 5s infinite;
+  position: relative;
 }
+.screen-tear::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 10px var(--cyan), 0 0 10px var(--magenta);
+  opacity: 0;
+  animation: tear 4s infinite;
+  pointer-events: none;
+}
+
 @keyframes tear {
-  0%, 95% { transform: translateX(0); }
-  96% { transform: translateX(-4px) skewX(3deg); }
-  97% { transform: translateX(4px) skewX(-3deg); }
-  98% { transform: translateX(0); }
+  0%, 95% { opacity: 0; transform: translateY(0) scaleY(1); }
+  96% { opacity: 1; transform: translateY(-10px) scaleY(2); }
+  97% { opacity: 0; transform: translateY(10px) scaleY(1); }
+  100% { opacity: 0; }
 }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-left: 1px solid var(--cyan);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--magenta);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan);
+}
+
+/* Glass/Glitch Card */
+.glass-card {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid var(--cyan);
+  box-shadow: 4px 4px 0px var(--magenta);
+  position: relative;
+}
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 255, 0.05) 2px,
+    rgba(0, 255, 255, 0.05) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Input Focus Glow */
+.input-glow:focus-within {
+  box-shadow: 0 0 15px var(--cyan), inset 0 0 10px var(--cyan);
+  border-color: var(--cyan);
+}
+
+/* Button Ripple/Glow */
+.btn-glitch {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.btn-glitch:hover {
+  box-shadow: 0 0 15px var(--magenta);
+  text-shadow: 0 0 5px var(--cyan);
+}
+.btn-glitch::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 0, 255, 0.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out;
+  opacity: 0;
+}
+.btn-glitch:active::after {
+  width: 200px;
+  height: 200px;
+  opacity: 1;
+  transition: 0s;
+}
+

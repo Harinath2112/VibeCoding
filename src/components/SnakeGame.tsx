@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Play, RotateCcw } from 'lucide-react';
 
 const CANVAS_SIZE = 400;
 const GRID_SIZE = 20;
@@ -38,8 +40,8 @@ export default function SnakeGame() {
       particles.current.push({
         x: x * CELL_SIZE + CELL_SIZE/2,
         y: y * CELL_SIZE + CELL_SIZE/2,
-        vx: (Math.random() - 0.5) * 12,
-        vy: (Math.random() - 0.5) * 12,
+        vx: (Math.random() - 0.5) * 10,
+        vy: (Math.random() - 0.5) * 10,
         life: 0,
         maxLife: Math.random() * 20 + 10,
         color
@@ -74,7 +76,7 @@ export default function SnakeGame() {
     if (shake.current < 0) shake.current = 0;
 
     moveAccumulator.current += dt;
-    const speed = Math.max(40, 120 - score * 1.5);
+    const speed = Math.max(50, 150 - score * 1.5);
 
     if (moveAccumulator.current >= speed) {
       moveAccumulator.current -= speed;
@@ -86,16 +88,16 @@ export default function SnakeGame() {
       // Wall collision
       if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
         setGameState('GAME_OVER');
-        shake.current = 25;
-        spawnParticles(head.x, head.y, '#0ff', 30);
+        shake.current = 20;
+        spawnParticles(head.x, head.y, '#0ff', 40);
         return;
       }
 
       // Self collision
       if (snake.current.some(s => s.x === newHead.x && s.y === newHead.y)) {
         setGameState('GAME_OVER');
-        shake.current = 25;
-        spawnParticles(head.x, head.y, '#0ff', 30);
+        shake.current = 20;
+        spawnParticles(head.x, head.y, '#0ff', 40);
         return;
       }
 
@@ -104,8 +106,8 @@ export default function SnakeGame() {
       // Food collision
       if (newHead.x === food.current.x && newHead.y === food.current.y) {
         setScore(s => s + 10);
-        shake.current = 12;
-        spawnParticles(food.current.x, food.current.y, '#f0f');
+        shake.current = 8;
+        spawnParticles(food.current.x, food.current.y, '#f0f', 20);
         spawnFood();
       } else {
         snake.current.pop();
@@ -114,8 +116,7 @@ export default function SnakeGame() {
   };
 
   const draw = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     ctx.save();
     if (shake.current > 0) {
@@ -124,8 +125,8 @@ export default function SnakeGame() {
       ctx.translate(dx, dy);
     }
 
-    // Draw Grid (Glitchy)
-    ctx.strokeStyle = '#0ff3';
+    // Draw Grid
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
     ctx.lineWidth = 1;
     for(let i=0; i<=GRID_SIZE; i++) {
       ctx.beginPath(); ctx.moveTo(i*CELL_SIZE, 0); ctx.lineTo(i*CELL_SIZE, CANVAS_SIZE); ctx.stroke();
@@ -139,10 +140,12 @@ export default function SnakeGame() {
     ctx.fillRect(food.current.x * CELL_SIZE + 2, food.current.y * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
 
     // Draw Snake
-    ctx.shadowBlur = 10;
     snake.current.forEach((s, i) => {
-      ctx.fillStyle = i === 0 ? '#fff' : '#0ff';
-      ctx.shadowColor = '#0ff';
+      const isHead = i === 0;
+      ctx.fillStyle = isHead ? '#ffffff' : '#0ff';
+      ctx.shadowColor = isHead ? '#ffffff' : '#0ff';
+      ctx.shadowBlur = isHead ? 15 : 5;
+      
       ctx.fillRect(s.x * CELL_SIZE + 1, s.y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
     });
 
@@ -205,25 +208,68 @@ export default function SnakeGame() {
   }, [gameState]);
 
   return (
-    <div className="relative border-4 border-cyan-500 p-2 bg-black shadow-[0_0_20px_#0ff] screen-tear w-full max-w-[420px]">
-      <div className="absolute top-0 left-0 w-full flex justify-between px-4 py-2 pointer-events-none z-10">
-        <span className="font-mono text-2xl" style={{color: '#f0f', textShadow: '2px 2px #0ff'}}>SCORE:{score}</span>
-        <span className="font-mono text-2xl" style={{color: '#0ff', textShadow: '2px 2px #f0f'}}>SYS.OP</span>
-      </div>
-      <canvas 
-        ref={canvasRef} 
-        width={CANVAS_SIZE} 
-        height={CANVAS_SIZE} 
-        className="w-full h-auto aspect-square block bg-black"
-      />
-      {gameState !== 'PLAYING' && (
-        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20">
-          <h2 className="text-5xl font-mono mb-4 text-center glitch-text" data-text={gameState === 'START' ? 'INITIALIZE' : 'SYS_FAILURE'}>
-            {gameState === 'START' ? 'INITIALIZE' : 'SYS_FAILURE'}
-          </h2>
-          <p className="text-cyan-400 font-mono text-xl animate-pulse">PRESS [SPACE] TO EXECUTE</p>
+    <div className="glass-card p-6 w-full max-w-[460px] relative overflow-hidden flex flex-col items-center font-mono screen-tear">
+      <div className="w-full flex justify-between items-center mb-6 px-2">
+        <div className="flex flex-col">
+          <span className="text-xs text-cyan-600 font-medium uppercase tracking-widest">SCORE</span>
+          <span className="text-3xl font-display font-bold text-cyan-400 tracking-tight">{score}</span>
         </div>
-      )}
+        <div className="flex flex-col items-end">
+          <span className="text-xs text-magenta-600 font-medium uppercase tracking-widest">STATUS</span>
+          <span className="text-sm font-medium text-magenta-400 uppercase tracking-widest">
+            {gameState === 'PLAYING' ? 'ACTIVE' : 'IDLE'}
+          </span>
+        </div>
+      </div>
+
+      <div className="relative overflow-hidden bg-black border-2 border-cyan-500 shadow-[0_0_15px_#0ff] w-full aspect-square">
+        <canvas 
+          ref={canvasRef} 
+          width={CANVAS_SIZE} 
+          height={CANVAS_SIZE} 
+          className="w-full h-full block bg-black"
+        />
+        
+        <AnimatePresence>
+          {gameState !== 'PLAYING' && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20"
+            >
+              <motion.h2 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="text-4xl font-display font-bold mb-6 text-white tracking-tight glitch-text uppercase"
+                data-text={gameState === 'START' ? 'INITIALIZE' : 'SYS_FAILURE'}
+              >
+                {gameState === 'START' ? 'INITIALIZE' : 'SYS_FAILURE'}
+              </motion.h2>
+              
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={reset}
+                className="flex items-center gap-2 px-8 py-4 bg-black border-2 border-magenta-500 text-magenta-500 font-semibold tracking-wide shadow-[0_0_15px_#f0f] btn-glitch uppercase"
+              >
+                {gameState === 'START' ? <Play className="w-5 h-5 fill-current" /> : <RotateCcw className="w-5 h-5" />}
+                {gameState === 'START' ? 'EXECUTE' : 'REBOOT'}
+              </motion.button>
+              
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-6 text-sm text-cyan-400 font-medium uppercase animate-pulse"
+              >
+                PRESS [SPACE] TO EXECUTE
+              </motion.p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
+
