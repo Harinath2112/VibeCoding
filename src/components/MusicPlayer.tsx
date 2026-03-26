@@ -1,22 +1,66 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, Search, Cpu } from 'lucide-react';
+import { aiService } from '../services/aiService';
+import { useGamification } from '../context/GamificationContext';
 
-const TRACKS = [
+const DEFAULT_TRACKS = [
   { id: 1, title: "ERR_01: NEON_DRIVE.wav", artist: "AI Synth", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
   { id: 2, title: "ERR_02: CYBER_CITY.wav", artist: "AI Synth", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
   { id: 3, title: "ERR_03: SYNTH_DREAM.wav", artist: "AI Synth", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
 ];
 
 export default function MusicPlayer() {
+  const [tracks, setTracks] = useState<any[]>(DEFAULT_TRACKS);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.5);
   const [isMuted, setIsMuted] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  
+  // AI States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isGeneratingPlaylist, setIsGeneratingPlaylist] = useState(false);
+  
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { addXp, unlockAchievement } = useGamification();
 
-  const currentTrack = TRACKS[currentTrackIndex];
+  const currentTrack = tracks[currentTrackIndex];
+
+  // Debounced AI Search Suggestions
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchQuery.length >= 2) {
+        const results = await aiService.getTrackSuggestions(searchQuery);
+        setSuggestions(results);
+      } else {
+        setSuggestions([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleGeneratePlaylist = async () => {
+    if (!searchQuery) return;
+    setIsGeneratingPlaylist(true);
+    try {
+      const newTracks = await aiService.generatePlaylist(searchQuery);
+      if (newTracks.length > 0) {
+        setTracks(newTracks);
+        setCurrentTrackIndex(0);
+        setIsPlaying(true);
+        setSearchQuery("");
+        setSuggestions([]);
+        unlockAchievement('AI_DJ');
+        addXp(20, 'PLAYLIST_GENERATED');
+      }
+    } catch (error) {
+      console.error("Failed to generate playlist", error);
+    } finally {
+      setIsGeneratingPlaylist(false);
+    }
+  };
 
   useEffect(() => {
     if (audioRef.current) {
@@ -32,16 +76,24 @@ export default function MusicPlayer() {
     }
   }, [isPlaying, currentTrackIndex]);
 
-  const togglePlay = () => setIsPlaying(!isPlaying);
+  const togglePlay = () => {
+    if (!isPlaying) {
+      unlockAchievement('MUSIC_PLAY');
+      addXp(5, 'AUDIO_STREAM_ACTIVE');
+    }
+    setIsPlaying(!isPlaying);
+  };
 
   const nextTrack = () => {
-    setCurrentTrackIndex((prev) => (prev + 1) % TRACKS.length);
+    setCurrentTrackIndex((prev) => (prev + 1) % tracks.length);
     setIsPlaying(true);
+    addXp(5, 'AUDIO_STREAM_ACTIVE');
   };
 
   const prevTrack = () => {
-    setCurrentTrackIndex((prev) => (prev - 1 + TRACKS.length) % TRACKS.length);
+    setCurrentTrackIndex((prev) => (prev - 1 + tracks.length) % tracks.length);
     setIsPlaying(true);
+    addXp(5, 'AUDIO_STREAM_ACTIVE');
   };
 
   return (
@@ -52,12 +104,44 @@ export default function MusicPlayer() {
           <Search className="w-4 h-4 text-cyan-400 mr-2" />
           <input 
             type="text" 
-            placeholder="SEARCH_TRACKS..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="INPUT_MOOD_OR_QUERY..." 
             className="w-full bg-transparent border-none outline-none text-sm text-white placeholder-cyan-700 uppercase"
             onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           />
+          <button 
+            onClick={handleGeneratePlaylist}
+            disabled={isGeneratingPlaylist || !searchQuery}
+            className="ml-2 text-magenta-500 hover:text-cyan-400 transition-colors disabled:opacity-50"
+          >
+            <Cpu className={`w-5 h-5 ${isGeneratingPlaylist ? 'animate-spin' : ''}`} />
+          </button>
         </div>
+        
+        {/* AI Suggestions Dropdown */}
+        <AnimatePresence>
+          {isFocused && suggestions.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute z-20 w-full mt-1 bg-black border border-cyan-500 shadow-[0_0_10px_#0ff] p-2"
+            >
+              <div className="text-[10px] text-magenta-500 mb-2 uppercase tracking-widest">AI_PREDICTIONS</div>
+              {suggestions.map((sug, idx) => (
+                <div 
+                  key={idx}
+                  onClick={() => setSearchQuery(sug)}
+                  className="text-xs text-cyan-400 p-2 hover:bg-cyan-900/30 cursor-pointer uppercase truncate"
+                >
+                  &gt; {sug}
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="flex items-center gap-4 mb-8">
@@ -79,7 +163,7 @@ export default function MusicPlayer() {
             STATUS: {isPlaying ? 'ACTIVE' : 'IDLE'}
           </div>
           <div className="flex justify-between items-center mb-2 mt-2">
-            <span className="text-xs text-cyan-600 font-medium tracking-wider uppercase">TRACK {currentTrackIndex + 1}/{TRACKS.length}</span>
+            <span className="text-xs text-cyan-600 font-medium tracking-wider uppercase">TRACK {currentTrackIndex + 1}/{tracks.length}</span>
             <span className="text-xs text-magenta-400 font-medium tracking-wider uppercase flex items-center gap-2">
               {isPlaying && (
                 <span className="flex gap-1">

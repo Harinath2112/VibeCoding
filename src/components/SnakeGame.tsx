@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw, Cpu } from 'lucide-react';
+import { aiService } from '../services/aiService';
+import { useGamification } from '../context/GamificationContext';
 
 const CANVAS_SIZE = 400;
 const GRID_SIZE = 20;
@@ -13,6 +15,9 @@ export default function SnakeGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [gameState, setGameState] = useState<'START' | 'PLAYING' | 'GAME_OVER'>('START');
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const { addXp, unlockAchievement } = useGamification();
 
   const snake = useRef<Point[]>([{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}]);
   const direction = useRef<Point>({x: 0, y: -1});
@@ -56,8 +61,30 @@ export default function SnakeGame() {
     setScore(0);
     spawnFood();
     setGameState('PLAYING');
+    setAiInsight(null);
     shake.current = 0;
     particles.current = [];
+  };
+
+  const triggerGameOver = async (head: Point) => {
+    setGameState('GAME_OVER');
+    shake.current = 20;
+    spawnParticles(head.x, head.y, '#0ff', 40);
+    
+    unlockAchievement('SNAKE_DEATH');
+    if (score >= 50) {
+      unlockAchievement('SNAKE_50');
+    }
+
+    setIsAiLoading(true);
+    try {
+      const insight = await aiService.getGameOverInsight(score);
+      setAiInsight(insight);
+    } catch (e) {
+      setAiInsight("SYS.ERR: AI_OFFLINE");
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const update = (dt: number) => {
@@ -87,17 +114,13 @@ export default function SnakeGame() {
 
       // Wall collision
       if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
-        setGameState('GAME_OVER');
-        shake.current = 20;
-        spawnParticles(head.x, head.y, '#0ff', 40);
+        triggerGameOver(head);
         return;
       }
 
       // Self collision
       if (snake.current.some(s => s.x === newHead.x && s.y === newHead.y)) {
-        setGameState('GAME_OVER');
-        shake.current = 20;
-        spawnParticles(head.x, head.y, '#0ff', 40);
+        triggerGameOver(head);
         return;
       }
 
@@ -106,6 +129,7 @@ export default function SnakeGame() {
       // Food collision
       if (newHead.x === food.current.x && newHead.y === food.current.y) {
         setScore(s => s + 10);
+        addXp(10, 'BIOMASS_CONSUMED');
         shake.current = 8;
         spawnParticles(food.current.x, food.current.y, '#f0f', 20);
         spawnFood();
@@ -246,6 +270,23 @@ export default function SnakeGame() {
               >
                 {gameState === 'START' ? 'INITIALIZE' : 'SYS_FAILURE'}
               </motion.h2>
+
+              {gameState === 'GAME_OVER' && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-6 max-w-[80%] text-center border border-cyan-500/50 bg-black/50 p-3"
+                >
+                  <div className="text-[10px] text-magenta-500 mb-1 flex items-center justify-center gap-1 uppercase tracking-widest">
+                    <Cpu className="w-3 h-3" /> AI_ANALYSIS
+                  </div>
+                  {isAiLoading ? (
+                    <div className="text-cyan-400 text-xs animate-pulse">PROCESSING_BIOMETRICS...</div>
+                  ) : (
+                    <div className="text-cyan-300 text-xs leading-relaxed">{aiInsight}</div>
+                  )}
+                </motion.div>
+              )}
               
               <motion.button 
                 whileHover={{ scale: 1.05 }}

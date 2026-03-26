@@ -5,12 +5,67 @@
   --font-sans: "Share Tech Mono", monospace;
   --font-display: "VT323", monospace;
   --font-mono: "VT323", monospace;
+  
+  --color-cyan-300: var(--theme-primary-light);
+  --color-cyan-400: var(--theme-primary);
+  --color-cyan-500: var(--theme-primary-dark);
+  --color-cyan-600: var(--theme-primary-darker);
+  --color-cyan-900: var(--theme-primary-bg);
+  
+  --color-magenta-300: var(--theme-secondary-light);
+  --color-magenta-400: var(--theme-secondary);
+  --color-magenta-500: var(--theme-secondary-dark);
+  --color-magenta-600: var(--theme-secondary-darker);
+  --color-magenta-900: var(--theme-secondary-bg);
 }
 
 :root {
-  --cyan: #0ff;
-  --magenta: #f0f;
+  /* Default Cyberpunk Theme (Cyan/Magenta) */
+  --theme-primary-light: #67e8f9;
+  --theme-primary: #22d3ee;
+  --theme-primary-dark: #06b6d4;
+  --theme-primary-darker: #0891b2;
+  --theme-primary-bg: #164e63;
+  
+  --theme-secondary-light: #f472b6;
+  --theme-secondary: #e81cff;
+  --theme-secondary-dark: #d946ef;
+  --theme-secondary-darker: #c026d3;
+  --theme-secondary-bg: #701a75;
+
+  --cyan: var(--theme-primary);
+  --magenta: var(--theme-secondary);
   --bg: #050505;
+}
+
+[data-theme="matrix"] {
+  /* Matrix Theme (Green/Dark Green) */
+  --theme-primary-light: #86efac;
+  --theme-primary: #4ade80;
+  --theme-primary-dark: #22c55e;
+  --theme-primary-darker: #16a34a;
+  --theme-primary-bg: #14532d;
+  
+  --theme-secondary-light: #fdba74;
+  --theme-secondary: #fb923c;
+  --theme-secondary-dark: #f97316;
+  --theme-secondary-darker: #ea580c;
+  --theme-secondary-bg: #7c2d12;
+}
+
+[data-theme="alert"] {
+  /* Alert Theme (Red/Yellow) */
+  --theme-primary-light: #fca5a5;
+  --theme-primary: #f87171;
+  --theme-primary-dark: #ef4444;
+  --theme-primary-darker: #dc2626;
+  --theme-primary-bg: #7f1d1d;
+  
+  --theme-secondary-light: #fde047;
+  --theme-secondary: #facc15;
+  --theme-secondary-dark: #eab308;
+  --theme-secondary-darker: #ca8a04;
+  --theme-secondary-bg: #713f12;
 }
 
 body {
