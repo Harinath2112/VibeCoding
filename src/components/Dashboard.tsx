@@ -4,7 +4,7 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { Activity, Users, Cpu, Database, Terminal } from 'lucide-react';
+import { Activity, Users, Cpu, Database, Terminal, BrainCircuit, List } from 'lucide-react';
 
 // --- Mock Data Generators ---
 const generateActivityData = () => {
@@ -37,6 +37,14 @@ const PIE_DATA = [
 
 const COLORS = ['#0ff', '#f0f', '#00ff00', '#ffff00'];
 
+const AI_INSIGHTS = [
+  "Anomaly detected in Node SYS.03. Rerouting traffic.",
+  "User engagement increased by 14.2% in the last cycle.",
+  "Memory leak predicted in module 0x4A. Initiating garbage collection.",
+  "Optimal time for system maintenance: 03:00 UTC.",
+  "Threat neutralized: Unauthorized access attempt from Sector 7.",
+];
+
 export default function Dashboard() {
   const [activityData, setActivityData] = useState(generateActivityData());
   const [loadData, setLoadData] = useState(generateLoadData());
@@ -46,6 +54,8 @@ export default function Dashboard() {
     dataFragments: 8901,
     uptime: '99.9%',
   });
+  const [insightIndex, setInsightIndex] = useState(0);
+  const [recentLogs, setRecentLogs] = useState<{time: string, msg: string}[]>([]);
 
   // Memoize chart data to prevent unnecessary re-renders of heavy chart components
   const memoizedActivityData = useMemo(() => activityData, [activityData]);
@@ -78,6 +88,28 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // AI Insight Rotator
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setInsightIndex(prev => (prev + 1) % AI_INSIGHTS.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load History Logs
+  useEffect(() => {
+    const history = JSON.parse(localStorage.getItem('SYS_SHARE_HISTORY') || '[]');
+    const formattedLogs = history.slice(-5).reverse().map((h: any) => ({
+      time: new Date(h.timestamp).toLocaleTimeString(),
+      msg: `Executed ${h.action} at LVL ${h.level}`
+    }));
+    
+    if (formattedLogs.length === 0) {
+      formattedLogs.push({ time: new Date().toLocaleTimeString(), msg: "System initialized. No recent actions." });
+    }
+    setRecentLogs(formattedLogs);
+  }, []);
+
   return (
     <div className="w-full max-w-7xl flex flex-col gap-6 mt-8">
       <div className="flex items-center gap-3 border-b-2 border-magenta-500 pb-2 mb-4">
@@ -86,6 +118,19 @@ export default function Dashboard() {
           TELEMETRY_DASHBOARD
         </h2>
       </div>
+
+      {/* AI Insight Banner */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card p-4 border-l-4 border-cyan-500 flex items-center gap-4 bg-cyan-900/20"
+      >
+        <BrainCircuit className="w-6 h-6 text-cyan-400 animate-pulse" />
+        <div className="flex-1">
+          <p className="text-[10px] text-cyan-500 tracking-widest uppercase font-bold mb-1">AI_PREDICTIVE_ANALYSIS</p>
+          <p className="text-sm text-white font-mono">{AI_INSIGHTS[insightIndex]}</p>
+        </div>
+      </motion.div>
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -127,40 +172,23 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Pie Chart - Distribution */}
+        {/* Recent Activity Logs */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="glass-card p-4 flex flex-col h-80"
+          className="glass-card p-4 flex flex-col h-80 overflow-hidden"
         >
-          <h3 className="text-sm font-bold text-magenta-400 mb-4 tracking-widest uppercase border-b border-magenta-900 pb-2">
-            RESOURCE_ALLOCATION
+          <h3 className="text-sm font-bold text-magenta-400 mb-4 tracking-widest uppercase border-b border-magenta-900 pb-2 flex items-center gap-2">
+            <List className="w-4 h-4" /> RECENT_ACTIVITY
           </h3>
-          <div className="flex-1 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={memoizedPieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {PIE_DATA.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', border: '1px solid #f0f', borderRadius: 0 }}
-                  itemStyle={{ color: '#fff', fontSize: '12px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '10px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-3">
+            {recentLogs.map((log, i) => (
+              <div key={i} className="border-l-2 border-magenta-500 pl-3 py-1 bg-magenta-900/10">
+                <div className="text-[10px] text-gray-500 font-mono">{log.time}</div>
+                <div className="text-xs text-white font-mono">{log.msg}</div>
+              </div>
+            ))}
           </div>
         </motion.div>
 
@@ -169,7 +197,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="glass-card p-4 lg:col-span-3 flex flex-col h-72"
+          className="glass-card p-4 lg:col-span-2 flex flex-col h-72"
         >
           <h3 className="text-sm font-bold text-cyan-400 mb-4 tracking-widest uppercase border-b border-cyan-900 pb-2">
             NODE_STRESS_LEVELS
@@ -191,6 +219,43 @@ export default function Dashboard() {
                   ))}
                 </Bar>
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Pie Chart - Distribution */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="glass-card p-4 flex flex-col h-72"
+        >
+          <h3 className="text-sm font-bold text-magenta-400 mb-4 tracking-widest uppercase border-b border-magenta-900 pb-2">
+            RESOURCE_ALLOCATION
+          </h3>
+          <div className="flex-1 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={memoizedPieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={70}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {PIE_DATA.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', border: '1px solid #f0f', borderRadius: 0 }}
+                  itemStyle={{ color: '#fff', fontSize: '12px' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '10px' }} />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </motion.div>

@@ -16,8 +16,6 @@ import Particles from "./components/Particles";
 
 // Lazy load heavy components
 const SnakeGame = lazy(() => import("./components/SnakeGame"));
-const MusicPlayer = lazy(() => import("./components/MusicPlayer"));
-const SystemProfile = lazy(() => import("./components/SystemProfile"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 
 const LoadingFallback = () => (
@@ -29,11 +27,63 @@ const LoadingFallback = () => (
   </div>
 );
 
+const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 100) {
+          clearInterval(interval);
+          setTimeout(onComplete, 500);
+          return 100;
+        }
+        return p + Math.floor(Math.random() * 15) + 5;
+      });
+    }, 150);
+    return () => clearInterval(interval);
+  }, [onComplete]);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0, filter: "blur(10px)", scale: 1.1 }}
+      transition={{ duration: 0.8, ease: "easeInOut" }}
+      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center font-mono p-8"
+    >
+      <div className="w-full max-w-md flex flex-col gap-4">
+        <h1 className="text-3xl font-display font-bold text-cyan-500 tracking-widest uppercase glitch-text" data-text="SYS.INIT()">
+          SYS.INIT()
+        </h1>
+        <div className="text-xs text-magenta-500 tracking-widest uppercase">
+          // BOOTSTRAPPING NEURAL KERNEL
+        </div>
+        <div className="h-2 bg-gray-900 border border-cyan-500/30 w-full relative overflow-hidden">
+          <motion.div 
+            className="h-full bg-cyan-500 shadow-[0_0_10px_#0ff]"
+            style={{ width: `${Math.min(progress, 100)}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-cyan-600">
+          <span>LOADING_MODULES</span>
+          <span>{Math.min(progress, 100)}%</span>
+        </div>
+        <div className="mt-8 text-[10px] text-gray-500 flex flex-col gap-1 opacity-50">
+          {progress > 10 && <div>&gt; Mount virtual filesystem... OK</div>}
+          {progress > 30 && <div>&gt; Initialize quantum entropy pool... OK</div>}
+          {progress > 50 && <div>&gt; Connect to mainframe... ESTABLISHED</div>}
+          {progress > 70 && <div>&gt; Load user profile... DECRYPTED</div>}
+          {progress > 90 && <div>&gt; Launching interface...</div>}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export default function App() {
   const { scrollY } = useScroll();
-  const [activeTab, setActiveTab] = useState<"SIMULATION" | "TELEMETRY">(
-    "SIMULATION",
-  );
+  const [activeTab, setActiveTab] = useState<"SIMULATION" | "TELEMETRY">("SIMULATION");
+  const [isBooting, setIsBooting] = useState(true);
 
   // Subtle parallax for background blobs
   const y1 = useTransform(scrollY, [0, 1000], [0, 200]);
@@ -49,137 +99,135 @@ export default function App() {
       }
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Keyboard shortcuts
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 's') {
+          e.preventDefault();
+          setActiveTab("SIMULATION");
+        } else if (e.key === 'd') {
+          e.preventDefault();
+          setActiveTab("TELEMETRY");
+        }
+      }
+    };
+
     window.addEventListener("VOICE_COMMAND", handleVoiceCommand);
-    return () =>
+    window.addEventListener("keydown", handleKeyDown);
+    
+    return () => {
       window.removeEventListener("VOICE_COMMAND", handleVoiceCommand);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   return (
     <GlitchErrorBoundary>
       <GamificationProvider>
-        <div className="min-h-screen relative flex flex-col items-center justify-center p-4 sm:p-8 overflow-hidden font-sans selection:bg-magenta-500/30">
-          <ThemeSwitcher />
-          <GlitchToastContainer />
-          <NeuralAudio />
-          <div className="static-noise"></div>
-          <CursorTrail />
-          <Particles />
-          <BackgroundEffects />
+        <AnimatePresence>
+          {isBooting && <BootSequence onComplete={() => setIsBooting(false)} />}
+        </AnimatePresence>
 
-          {/* Animated Parallax Background Gradients */}
-          <motion.div
-            style={{ y: y1 }}
-            className="bg-blob w-[40rem] h-[40rem] bg-cyan-600/20 top-[-10%] left-[-10%]"
-          ></motion.div>
-          <motion.div
-            style={{ y: y2, animationDelay: "2s" }}
-            className="bg-blob w-[35rem] h-[35rem] bg-magenta-600/20 bottom-[-10%] right-[-10%]"
-          ></motion.div>
-          <motion.div
-            style={{ y: y3, animationDelay: "4s" }}
-            className="bg-blob w-[30rem] h-[30rem] bg-cyan-600/20 top-[30%] left-[30%]"
-          ></motion.div>
+        {!isBooting && (
+          <div className="min-h-screen relative flex flex-col items-center justify-center p-4 sm:p-8 overflow-hidden font-sans selection:bg-magenta-500/30">
+            <ThemeSwitcher />
+            <GlitchToastContainer />
+            <NeuralAudio />
+            <div className="static-noise"></div>
+            <CursorTrail />
+            <Particles />
+            <BackgroundEffects />
 
-          <AnimatePresence mode="wait">
-            <motion.main
-              key="main-content"
-              initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
-              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-              exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full flex flex-col items-center z-10"
-            >
-              <header className="mb-8 md:mb-12 text-center screen-tear">
-                <motion.h1
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                  className="text-5xl md:text-7xl font-display font-extrabold tracking-tight glitch-text"
-                  data-text="SYS.INIT()"
-                >
-                  SYS.INIT()
-                </motion.h1>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
-                  className="text-cyan-400 mt-3 tracking-widest uppercase text-xs md:text-sm font-medium"
-                >
-                  // Establishing connection...
-                </motion.p>
-              </header>
+            {/* Animated Parallax Background Gradients */}
+            <motion.div
+              style={{ y: y1 }}
+              className="bg-blob w-[40rem] h-[40rem] bg-cyan-600/20 top-[-10%] left-[-10%]"
+            ></motion.div>
+            <motion.div
+              style={{ y: y2, animationDelay: "2s" }}
+              className="bg-blob w-[35rem] h-[35rem] bg-magenta-600/20 bottom-[-10%] right-[-10%]"
+            ></motion.div>
+            <motion.div
+              style={{ y: y3, animationDelay: "4s" }}
+              className="bg-blob w-[30rem] h-[30rem] bg-cyan-600/20 top-[30%] left-[30%]"
+            ></motion.div>
 
-              <div className="flex gap-4 mb-8 z-20">
-                <button
-                  onClick={() => setActiveTab("SIMULATION")}
-                  className={`px-4 py-2 font-display tracking-widest text-sm uppercase transition-all ${activeTab === "SIMULATION" ? "bg-cyan-500/20 border border-cyan-500 text-cyan-400 shadow-[0_0_10px_#0ff]" : "text-gray-500 hover:text-cyan-400"}`}
-                >
-                  [ SIMULATION ]
-                </button>
-                <button
-                  onClick={() => setActiveTab("TELEMETRY")}
-                  className={`px-4 py-2 font-display tracking-widest text-sm uppercase transition-all ${activeTab === "TELEMETRY" ? "bg-magenta-500/20 border border-magenta-500 text-magenta-400 shadow-[0_0_10px_#f0f]" : "text-gray-500 hover:text-magenta-400"}`}
-                >
-                  [ TELEMETRY ]
-                </button>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {activeTab === "SIMULATION" ? (
-                  <motion.div
-                    key="simulation"
-                    initial={{ opacity: 0, y: 20 }}
+            <AnimatePresence mode="wait">
+              <motion.main
+                key="main-content"
+                initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full flex flex-col items-center z-10"
+              >
+                <header className="mb-8 md:mb-12 text-center screen-tear">
+                  <motion.h1
+                    initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="w-full max-w-7xl flex flex-col lg:flex-row gap-8 items-center lg:items-start justify-center"
+                    transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                    className="text-5xl md:text-7xl font-display font-extrabold tracking-tight glitch-text"
+                    data-text="SYS.INIT()"
                   >
+                    SYS.INIT()
+                  </motion.h1>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                    className="text-cyan-400 mt-3 tracking-widest uppercase text-xs md:text-sm font-medium flex items-center justify-center gap-4"
+                  >
+                    <span>// CONNECTION_ESTABLISHED</span>
+                    <span className="hidden md:inline-block text-gray-500 text-[10px]">SHORTCUTS: CTRL+S (SIM) | CTRL+D (TEL)</span>
+                  </motion.p>
+                </header>
+
+                <div className="flex gap-4 mb-8 z-20">
+                  <button
+                    onClick={() => setActiveTab("SIMULATION")}
+                    className={`px-4 py-2 font-display tracking-widest text-sm uppercase transition-all ${activeTab === "SIMULATION" ? "bg-cyan-500/20 border border-cyan-500 text-cyan-400 shadow-[0_0_10px_#0ff]" : "text-gray-500 hover:text-cyan-400"}`}
+                  >
+                    [ SIMULATION ]
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("TELEMETRY")}
+                    className={`px-4 py-2 font-display tracking-widest text-sm uppercase transition-all ${activeTab === "TELEMETRY" ? "bg-magenta-500/20 border border-magenta-500 text-magenta-400 shadow-[0_0_10px_#f0f]" : "text-gray-500 hover:text-magenta-400"}`}
+                  >
+                    [ TELEMETRY ]
+                  </button>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {activeTab === "SIMULATION" ? (
                     <motion.div
-                      initial={{ opacity: 0, x: -30 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{
-                        duration: 0.8,
-                        delay: 0.3,
-                        ease: "easeOut",
-                      }}
-                      className="w-full lg:w-auto flex flex-col gap-8 justify-center"
-                    >
-                      <Suspense fallback={<LoadingFallback />}>
-                        <SystemProfile />
-                        <MusicPlayer />
-                      </Suspense>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, x: 30 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{
-                        duration: 0.8,
-                        delay: 0.5,
-                        ease: "easeOut",
-                      }}
-                      className="w-full lg:w-auto flex justify-center"
+                      key="simulation"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="w-full max-w-7xl flex flex-col items-center justify-center"
                     >
                       <Suspense fallback={<LoadingFallback />}>
                         <SnakeGame />
                       </Suspense>
                     </motion.div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="telemetry"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="w-full max-w-7xl"
-                  >
-                    <Suspense fallback={<LoadingFallback />}>
-                      <Dashboard />
-                    </Suspense>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.main>
-          </AnimatePresence>
-        </div>
+                  ) : (
+                    <motion.div
+                      key="telemetry"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="w-full max-w-7xl"
+                    >
+                      <Suspense fallback={<LoadingFallback />}>
+                        <Dashboard />
+                      </Suspense>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.main>
+            </AnimatePresence>
+          </div>
+        )}
       </GamificationProvider>
     </GlitchErrorBoundary>
   );
